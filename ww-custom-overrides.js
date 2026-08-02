@@ -206,13 +206,13 @@
         <div class="ww-frame-preview">
           <canvas id="wwFrameCanvas" width="1080" height="1920" aria-label="Preview wedding frame"></canvas>
         </div>
-        <input class="ww-frame-file" id="wwFrameFile" type="file" accept="image/jpeg,image/png,image/webp" />
+        <input class="ww-frame-file" id="wwFrameFile" type="file" accept="jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif" />
         <div class="ww-frame-actions">
           <label class="ww-frame-button" for="wwFrameFile">Pilih Foto</label>
           <button class="ww-frame-button" id="wwFrameDownload" type="button">Unduh Frame</button>
           <button class="ww-frame-button ww-frame-button--secondary" id="wwFrameShare" type="button">Bagikan</button>
         </div>
-        <p class="ww-frame-status" id="wwFrameStatus" aria-live="polite">Format yang didukung: JPG, PNG, atau WebP. Maksimal 15 MB.</p>
+        <p class="ww-frame-status" id="wwFrameStatus" aria-live="polite">Format yang didukung: JPEG, PNG, WebP, HEIC, dan HEIF. Maksimal 15 MB.</p>
       </section>`;
 
     const canvas = document.getElementById('wwFrameCanvas');
@@ -320,9 +320,9 @@
     input.addEventListener('change',function(){
       const file = input.files && input.files[0];
       if(!file) return;
-      if(!/^image\/(jpeg|png|webp)$/.test(file.type)){
+      if(!/^image\/(jpg|jpeg|png|webp|heic|heif)$/.test(file.type)){
         input.value = '';
-        setStatus('File ditolak. Gunakan JPG, PNG, atau WebP.',true);
+        setStatus('File ditolak. Gunakan JPG, PNG, WebP, HEIC, atau HEIF.',true);
         return;
       }
       if(file.size > 15 * 1024 * 1024){
