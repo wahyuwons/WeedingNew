@@ -4,8 +4,7 @@
   const ASSETS = {
     couple: 'Assets/Utary-Bride-Groom-03.webp',
     landscape: 'Assets/Utary-Bride-Groom-03-e1763374114498.webp',
-    frame: 'Assets/Aruna-Frame-Mempelai.webp',
-    frameTop: 'Assets/Aruna-Frame-7-1.webp'
+    frame: 'Assets/Frame.webp',
   };
 
 
