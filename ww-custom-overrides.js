@@ -191,7 +191,123 @@
       reception.appendChild(map);
     }
   }
+/* ==========================================================
+   SUPPORTED WEDDING FRAME UPLOAD FORMATS
+   ========================================================== */
 
+const SUPPORTED_IMAGE_EXTENSIONS = new Set([
+  'jpg',
+  'jpeg',
+  'png',
+  'webp',
+  'heic',
+  'heif'
+]);
+
+const SUPPORTED_IMAGE_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+  'image/heic-sequence',
+  'image/heif-sequence'
+]);
+
+function getFileExtension(file) {
+  const fileName = String(file?.name || '');
+  const parts = fileName.toLowerCase().split('.');
+
+  return parts.length > 1
+    ? parts.pop()
+    : '';
+}
+
+function isSupportedImageFile(file) {
+  if (!file) {
+    return false;
+  }
+
+  const extension = getFileExtension(file);
+  const mimeType = String(file.type || '').toLowerCase();
+
+  return (
+    SUPPORTED_IMAGE_EXTENSIONS.has(extension) ||
+    SUPPORTED_IMAGE_MIME_TYPES.has(mimeType)
+  );
+}
+
+function isHeicFile(file) {
+  const extension = getFileExtension(file);
+  const mimeType = String(file?.type || '').toLowerCase();
+
+  return (
+    extension === 'heic' ||
+    extension === 'heif' ||
+    mimeType === 'image/heic' ||
+    mimeType === 'image/heif' ||
+    mimeType === 'image/heic-sequence' ||
+    mimeType === 'image/heif-sequence'
+  );
+}
+
+async function normalizeUploadedImage(file) {
+  if (!isHeicFile(file)) {
+    return file;
+  }
+
+  if (typeof window.heic2any !== 'function') {
+    throw new Error(
+      'HEIC converter tidak berhasil dimuat. Silakan refresh halaman dan coba kembali.'
+    );
+  }
+
+  const convertedResult = await window.heic2any({
+    blob: file,
+    toType: 'image/jpeg',
+    quality: 0.92
+  });
+
+  const convertedBlob = Array.isArray(convertedResult)
+    ? convertedResult[0]
+    : convertedResult;
+
+  const convertedName = String(file.name || 'uploaded-photo.heic')
+    .replace(/\.(heic|heif)$/i, '.jpg');
+
+  return new File(
+    [convertedBlob],
+    convertedName,
+    {
+      type: 'image/jpeg',
+      lastModified: Date.now()
+    }
+  );
+}
+
+function loadUploadedImage(file) {
+  return new Promise(function(resolve, reject) {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = function() {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+
+    image.onerror = function() {
+      URL.revokeObjectURL(objectUrl);
+
+      reject(
+        new Error(
+          'Foto tidak dapat dibaca. Silakan gunakan JPG, JPEG, PNG, WebP, HEIC, atau HEIF.'
+        )
+      );
+    };
+
+    image.src = objectUrl;
+  });
+}
   function setupWeddingFrame(){
     const host = document.querySelector('[data-id="2ad1e232"]');
     if(!host || host.dataset.wwFrameReady === '1') return;
@@ -206,13 +322,18 @@
         <div class="ww-frame-preview">
           <canvas id="wwFrameCanvas" width="1080" height="1920" aria-label="Preview wedding frame"></canvas>
         </div>
-        <input class="ww-frame-file" id="wwFrameFile" type="file" accept="jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif" />
+        <input
+          class="ww-frame-file"
+          id="wwFrameFile"
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif,image/heic-sequence,image/heif-sequence"
+        />
         <div class="ww-frame-actions">
           <label class="ww-frame-button" for="wwFrameFile">Pilih Foto</label>
           <button class="ww-frame-button" id="wwFrameDownload" type="button">Unduh Frame</button>
           <button class="ww-frame-button ww-frame-button--secondary" id="wwFrameShare" type="button">Bagikan</button>
         </div>
-        <p class="ww-frame-status" id="wwFrameStatus" aria-live="polite">Format yang didukung: JPEG, PNG, WebP, HEIC, dan HEIF. Maksimal 15 MB.</p>
+      <p class="ww-frame-status" id="wwFrameStatus" aria-live="polite">Format yang didukung: JPEG, PNG, WebP, HEIC, dan HEIF. Maks 15 MB.</p>
       </section>`;
 
     const canvas = document.getElementById('wwFrameCanvas');
@@ -317,33 +438,71 @@
       }
     }
 
-    input.addEventListener('change',function(){
-      const file = input.files && input.files[0];
-      if(!file) return;
-      if(!/^image\/(jpg|jpeg|png|webp|heic|heif)$/.test(file.type)){
-        input.value = '';
-        setStatus('File ditolak. Gunakan JPG, PNG, WebP, HEIC, atau HEIF.',true);
-        return;
-      }
-      if(file.size > 15 * 1024 * 1024){
-        input.value = '';
-        setStatus('Ukuran foto terlalu besar. Maksimal 15 MB.',true);
+    input.addEventListener('change', async function(event){
+      const selectedFile = event.target.files?.[0];
+
+      if(!selectedFile){
         return;
       }
 
-      const objectUrl = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = function(){
-        currentPhoto = img;
+      const MAX_FILE_SIZE = 15 * 1024 * 1024;
+
+      if(selectedFile.size > MAX_FILE_SIZE){
+        event.target.value = '';
+
+        setStatus(
+          'Ukuran foto terlalu besar. Maksimal 15 MB.',
+          true
+        );
+
+        return;
+      }
+
+      if(!isSupportedImageFile(selectedFile)){
+        event.target.value = '';
+
+        setStatus(
+          'Format file tidak didukung. Gunakan JPG, JPEG, PNG, WebP, HEIC, atau HEIF.',
+          true
+        );
+
+        return;
+      }
+
+      try{
+        setStatus(
+          isHeicFile(selectedFile)
+            ? 'Sedang mengonversi foto HEIC/HEIF...'
+            : 'Sedang memproses foto...',
+          false
+        );
+
+        const normalizedFile =
+          await normalizeUploadedImage(selectedFile);
+
+        currentPhoto =
+          await loadUploadedImage(normalizedFile);
+
         render();
-        setStatus('Foto berhasil dimasukkan. Frame siap diunduh.',false);
-        URL.revokeObjectURL(objectUrl);
-      };
-      img.onerror = function(){
-        setStatus('Foto tidak dapat dibaca. Coba simpan ulang sebagai JPG atau PNG.',true);
-        URL.revokeObjectURL(objectUrl);
-      };
-      img.src = objectUrl;
+
+        setStatus(
+          'Foto berhasil dimuat. Anda dapat mengunduh Wedding Frame.',
+          false
+        );
+      }catch(error){
+        console.error(
+          'Wedding Frame upload error:',
+          error
+        );
+
+        event.target.value = '';
+
+        setStatus(
+          error.message ||
+            'Foto gagal diproses. Silakan gunakan file lain.',
+          true
+        );
+      }
     });
 
     function canvasBlob(){
