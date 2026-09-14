@@ -269,18 +269,18 @@
         h - 220
       );
 
-      ctx.font = '600 25px Arial, sans-serif';
+      ctx.font = '600 27px Arial, sans-serif';
       ctx.fillText(
         '23 OCTOBER 2026',
         w / 2,
-        h - 165
+        h - 145
       );
 
-      ctx.font = '400 22px Arial, sans-serif';
+      ctx.font = '600 25px Arial, sans-serif';
       ctx.fillText(
         '#KisahSeJIWA',
         w / 2,
-        h - 155
+        h - 95
       );
 
       ctx.shadowBlur = 0;
