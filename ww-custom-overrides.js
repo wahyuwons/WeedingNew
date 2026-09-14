@@ -273,14 +273,14 @@
       ctx.fillText(
         '23 OCTOBER 2026',
         w / 2,
-        h - 145
+        h - 165
       );
 
       ctx.font = '400 22px Arial, sans-serif';
       ctx.fillText(
-        '#JihanWahyu',
+        '#KisahSeJIWA',
         w / 2,
-        h - 95
+        h - 155
       );
 
       ctx.shadowBlur = 0;
