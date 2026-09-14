@@ -420,3 +420,18 @@
   observer.observe(document.documentElement,{childList:true,subtree:true});
   setTimeout(function(){ observer.disconnect(); },12000);
 })();
+
+if ('mediaSession' in navigator) {
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: 'Jihan & Wahyu',
+    artist: 'Wedding Invitation',
+    album: '23 October 2026',
+    artwork: [
+      {
+        src: 'Assets/Utary-Bride-Groom-03.webp',
+        sizes: '512x512',
+        type: 'image/webp'
+      }
+    ]
+  });
+}
